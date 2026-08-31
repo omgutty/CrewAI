@@ -4,7 +4,7 @@
 import os
 import certifi
 
-os.environ["SSL_CERT_FILE"] = certifi.where()
+#os.environ["SSL_CERT_FILE"] = certifi.where()
 
 from crewai import Agent, Task, Crew, LLM
 from dotenv import load_dotenv
@@ -23,7 +23,7 @@ from dotenv import load_dotenv
 # Step 0 - Load environment variables and set up the Groq LLM
 load_dotenv()
 
-groq_llm = LLM(
+openrouter_llm = LLM(
     model=os.getenv("OPENROUTER_MODEL", "openrouter/deepseek/deepseek-v4-flash"),
     api_key=os.getenv("OPENROUTER_API_KEY"),
     base_url=os.getenv("BASE_URL", "https://openrouter.ai/api/v1"),
@@ -34,7 +34,7 @@ qa_agent= Agent(
     role= "QA Engineer",
     goal="Analyse the feature or the requirements, and create 5-10 test cases out of it.",
     backstory="You are a senior QA engineer with 15 years of experience in test planning and testcases creation",
-    llm = groq_llm,
+    llm = openrouter_llm,
     verbose=True
 )
 
