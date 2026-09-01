@@ -1,6 +1,6 @@
 # CrewAI-Agents
 
-Multi-agent system built with [CrewAI](https://www.crewai.com/) for orchestrating AI agents that work together to accomplish complex tasks.
+Multi-agent system built with [CrewAI](https://www.crewai.com/) for orchestrating AI agents that work together to accomplish complex tasks — including a **QA Bug Triage Crew** that reads live Jira tickets and produces a full triage report (classification → root cause → test strategy).
 
 CrewAI is a Python framework for orchestrating role-based LLM agents. It offers two complementary approaches:
 
@@ -9,31 +9,44 @@ CrewAI is a Python framework for orchestrating role-based LLM agents. It offers 
 
 ## Status
 
-Project scaffolding — implementation in progress.
+Working. The QA Bug Triage Crew runs end-to-end against a live Jira site (see `04_Build_QABugTriageCrew_Prod_openrouter.py`).
 
 ## Prerequisites
 
 - [uv](https://docs.astral.sh/uv/) (Python version manager + package manager)
-- [OpenRouter](https://openrouter.ai/) API key (gives access to many LLM providers through one API)
+- [OpenRouter](https://openrouter.ai/) API key (one key gives access to many models — DeepSeek, etc.)
+- A Jira Cloud site with an **email + API token** for the REST API (or an MCP server)
 
 ## Getting Started
 
-### 1. Activate the virtual environment
+### 1. Set up the environment
 
 ```powershell
+uv sync                  # install everything from uv.lock into .venv
 .\.venv\Scripts\Activate.ps1
 ```
 
-Your terminal prompt should show `(crewai-agents)` when active.
+Your terminal prompt should show `(crewai-agents)` when active. Alternatively skip activation — `uv run python <script>` uses the project environment automatically.
 
-### 2. Set your API key
+### 2. Configure `.env`
+
+Copy `.env.example` to `.env` and fill in your values:
 
 ```powershell
-# Windows
-setx OPENROUTER_API_KEY "your-api-key"
-# macOS / Linux
-export OPENROUTER_API_KEY="your-api-key"
+copy .env.example .env   # then edit .env
 ```
+
+Required variables:
+
+| Variable | Purpose |
+|----------|---------|
+| `OPENROUTER_API_KEY` | OpenRouter API key |
+| `OPENROUTER_MODEL` | Model id, e.g. `openrouter/deepseek/deepseek-v4-flash` |
+| `BASE_URL` | `https://openrouter.ai/api/v1` |
+| `JIRA_URL` / `JIRA_BASE_URL` | Your Jira site, e.g. `https://your-site.atlassian.net` |
+| `JIRA_EMAIL` | Login email for Jira REST API |
+| `JIRA_API_TOKEN` | Jira API token (not your password) |
+| `BUG_ID` | Issue key to analyze, e.g. `IS-6` |
 
 ### 3. Configure CrewAI to use OpenRouter
 
@@ -43,7 +56,7 @@ CrewAI uses LiteLLM under the hood, so point it at OpenRouter in your agent code
 from crewai import LLM
 
 llm = LLM(
-    model="openrouter/deepseek/deepseek-chat",  # any model from openrouter.ai/models
+    model="openrouter/deepseek/deepseek-v4-flash",  # any model from openrouter.ai/models
     api_key=os.environ["OPENROUTER_API_KEY"],
     base_url="https://openrouter.ai/api/v1",
 )
@@ -51,17 +64,32 @@ llm = LLM(
 
 Then pass `llm=llm` when creating your Agent.
 
-### 4. Run the project
+### 4. Run the scripts
 
 ```powershell
-python 01_test_analyst_Agent.py
+uv run python 01_test_analyst_Agent.py                     # single QA agent -> test cases
+uv run python 02_Research_Write_AI_Agent.py                # researcher + writer crew
+uv run python 03_Build_QABugTriageCrew.py                  # basic triage crew
+uv run python 04_Build_QABugTriageCrew_Prod_openrouter.py  # full triage crew, live Jira
 ```
 
-Or skip activation entirely — `uv run` uses the project environment automatically:
+The production triage crew (04) does:
 
-```powershell
-uv run python 01_test_analyst_Agent.py
-```
+1. **Fetch a bug from Jira** via REST API v3 (`JIRA_BASE_URL` + email/token, or a cached copy in `bug_cache/` if the fetch fails)
+2. **Agent 1 — Bug Triage Analyst**: Severity (S0–S4), Priority (P0–P4), Category, Business Impact, Confidence
+3. **Agent 2 — Root Cause Investigator**: differential diagnosis, 3 ranked hypotheses with kill tests, suspect layer, blast radius
+4. **Agent 3 — Test Strategy Advisor**: missing test, regression set, edge cases, runnable Playwright TypeScript
+
+Each agent runs with its own output-token budget because the prompt grows as context is chained.
+
+### 5. Publish
+
+The `publish/` folder contains a LinkedIn post and a 1200×630 HTML share card for the QA Bug Triage Crew — see `publish/README.md`.
+
+## Windows / corporate network notes
+
+- **Zscaler TLS inspection**: external HTTPS calls (OpenRouter, Jira) fail with `CERTIFICATE_VERIFY_FAILED` because the corporate proxy presents a private CA that certifi doesn't trust. The 04 script disables verification for the Jira fetch (`verify=False`) and disables CrewAI telemetry for local dev. Swap in the real Zscaler root CA for production.
+- **Emoji in console**: the scripts force UTF-8 stdout so emoji output doesn't crash on the cp1252 Windows console.
 
 ## Managing Packages
 
@@ -76,28 +104,24 @@ uv sync                # install everything from uv.lock
 
 ```
 CrewAI-Agents/
-├── .venv/              # Virtual environment — contains Python and all installed
-│   │                   # packages (crewai, openai, etc.). This is your sandbox,
-│   │                   # separate from your system Python. Required to run anything.
-│   │
+├── .venv/              # Virtual environment — Python + installed packages (crewai, etc.)
 ├── src/
-│   └── crewai_agents/  # Package source folder created by `uv init` (src layout).
-│       └── __init__.py # Holds the project's package code. Referenced by the
-│                       # [project.scripts] entry point in pyproject.toml.
-│                       # NOT required if you write scripts at the project root.
-│   │
-├── .python-version     # Pins the Python version (e.g. 3.11) for this folder.
-│                       # Tells uv which Python to use here. Optional but useful.
-│   │
-├── pyproject.toml      # Project "identity card": name, Python requirement, and
-│                       # dependencies. Edit this (or use `uv add`) to add packages.
-│                       # REQUIRED — without it uv won't treat this as a project.
-│   │
-├── uv.lock             # Lock file: pins the EXACT versions of every dependency,
-│   │                   # so any machine installs an identical environment.
-│   │                   # Auto-generated by uv — don't edit it by hand.
-│   │
-├── 01_test_analyst_Agent.py   # Agent scripts (written at project root)
+│   └── crewai_agents/  # Package source from `uv init` (src layout). NOT required
+│       └── __init__.py # if you write scripts at the project root.
+├── .python-version     # Pins the Python version for this folder
+├── pyproject.toml      # Project identity + dependencies
+├── uv.lock             # Lock file — pins exact dependency versions
+├── .env                # Your secrets — git-ignored, never commit
+├── .env.example        # Template for .env
+├── 01_test_analyst_Agent.py
+├── 02_Research_Write_AI_Agent.py
+├── 03_Build_QABugTriageCrew.py
+├── 04_Build_QABugTriageCrew_Prod.py          # Groq/DeepSeek fallback variant
+├── 04_Build_QABugTriageCrew_Prod_openrouter.py  # OpenRouter variant (primary)
+├── publish/
+│   ├── linkedin_post.md
+│   ├── linkedin_card.html
+│   └── README.md
 └── README.md           # This file
 ```
 

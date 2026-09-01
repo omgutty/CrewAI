@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QA Bug Triage Crew — Share Card</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    width: 1200px;
+    height: 630px;
+    overflow: hidden;
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 55%, #0f172a 100%);
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+    color: #e2e8f0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+  /* subtle grid backdrop */
+  .grid {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(148,163,184,0.07) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(148,163,184,0.07) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+  .card {
+    position: relative;
+    width: 1080px;
+    padding: 56px 64px;
+  }
+  .badge {
+    display: inline-block;
+    background: rgba(56,189,248,0.12);
+    border: 1px solid rgba(56,189,248,0.4);
+    color: #7dd3fc;
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 8px 20px;
+    border-radius: 999px;
+    margin-bottom: 28px;
+  }
+  h1 {
+    font-size: 58px;
+    line-height: 1.12;
+    font-weight: 700;
+    color: #f8fafc;
+    margin-bottom: 14px;
+  }
+  h1 .accent {
+    background: linear-gradient(90deg, #38bdf8, #818cf8);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .subtitle {
+    font-size: 24px;
+    color: #94a3b8;
+    margin-bottom: 44px;
+    line-height: 1.4;
+  }
+  .pipeline {
+    display: flex;
+    align-items: stretch;
+    gap: 20px;
+  }
+  .step {
+    flex: 1;
+    background: rgba(30,41,59,0.8);
+    border: 1px solid rgba(148,163,184,0.18);
+    border-radius: 18px;
+    padding: 26px 24px;
+    position: relative;
+  }
+  .step .num {
+    font-size: 15px;
+    font-weight: 700;
+    color: #38bdf8;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  .step h3 {
+    font-size: 22px;
+    font-weight: 600;
+    color: #f1f5f9;
+    margin-bottom: 10px;
+  }
+  .step p {
+    font-size: 15.5px;
+    color: #94a3b8;
+    line-height: 1.45;
+  }
+  .arrow {
+    align-self: center;
+    font-size: 30px;
+    color: #38bdf8;
+    flex-shrink: 0;
+  }
+  .footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 44px;
+    padding-top: 24px;
+    border-top: 1px solid rgba(148,163,184,0.18);
+    font-size: 18px;
+    color: #64748b;
+  }
+  .footer .stack {
+    display: flex;
+    gap: 12px;
+  }
+  .footer .chip {
+    background: rgba(148,163,184,0.1);
+    border: 1px solid rgba(148,163,184,0.25);
+    padding: 6px 16px;
+    border-radius: 999px;
+    font-size: 15px;
+    font-weight: 500;
+    color: #cbd5e1;
+  }
+  .footer .brand {
+    font-weight: 700;
+    color: #7dd3fc;
+  }
+</style>
+</head>
+<body>
+  <div class="grid"></div>
+  <div class="card">
+    <div class="badge">AI · QA Automation</div>
+    <h1>Bug Triage Crew<br>from <span class="accent">Jira Ticket</span> to Test Plan</h1>
+    <div class="subtitle">3 specialized AI agents, one sequential pipeline —<br>classify, investigate, and strategize every defect.</div>
+
+    <div class="pipeline">
+      <div class="step">
+        <div class="num">Agent 01</div>
+        <h3>🔍 Triage Analyst</h3>
+        <p>Severity S0–S4 · Priority P0–P4 · Category · Business impact — every call backed by evidence from the ticket.</p>
+      </div>
+      <div class="arrow">→</div>
+      <div class="step">
+        <div class="num">Agent 02</div>
+        <h3>🕵️ Root Cause Investigator</h3>
+        <p>Differential diagnosis, 3 ranked hypotheses with kill tests, suspect layer, and blast radius.</p>
+      </div>
+      <div class="arrow">→</div>
+      <div class="step">
+        <div class="num">Agent 03</div>
+        <h3>🧪 Test Strategy Advisor</h3>
+        <p>The missing test, regression set, edge cases, and runnable Playwright TypeScript.</p>
+      </div>
+    </div>
+
+    <div class="footer">
+      <div class="stack">
+        <span class="chip">CrewAI</span>
+        <span class="chip">OpenRouter · DeepSeek</span>
+        <span class="chip">Jira REST API</span>
+        <span class="chip">Playwright</span>
+      </div>
+      <div class="brand">QA Bug Triage Crew</div>
+    </div>
+  </div>
+</body>
+</html>

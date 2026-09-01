@@ -21,12 +21,34 @@ The crew (sequential process, each agent is a specialist):
 Input comes live from Jira (REST API v3). A Jira MCP server would work too.
 """
 
+# Fix SSL cert verification on Windows: uv's Python looks for CA certs at a
+# non-existent Unix path. Must be set BEFORE importing ssl/httpx (via crewai),
+# otherwise Python's ssl module never sees it.
 import os
+import sys
+import certifi
+
+os.environ["SSL_CERT_FILE"] = certifi.where()
+
+# The Windows console defaults to cp1252, which cannot encode emoji used in
+# the report output. Force UTF-8 so printing never raises UnicodeEncodeError.
+sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+
 import textwrap
 
 import requests
+import urllib3
 from crewai import LLM, Agent, Crew, Process, Task
 from dotenv import load_dotenv
+
+# verify=False is intentional for the Jira fetch (Zscaler proxy), so silence
+# the InsecureRequestWarning that would otherwise print on every run.
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+# CrewAI telemetry also fails TLS verification through the corporate proxy.
+# Disable tracing so it does not retry/print SSL errors after the run.
+os.environ["CREWAI_TELEMETRY_OPT_OUT"] = "true"
+os.environ["OTEL_SDK_DISABLED"] = "true"
 
 # ---------------------------------------------------------------------------
 # Step 0 - Set up the Brain (OpenRouter, OpenAI-compatible endpoint)
@@ -59,7 +81,7 @@ print(f"[llm] provider: {os.getenv('OPENROUTER_MODEL', 'openrouter/deepseek/deep
 # Step 0.5 - Fetch the bug from Jira
 # How to fetch from JIRA? -> JIRA REST API (below) or a JIRA MCP server.
 # ---------------------------------------------------------------------------
-JIRA_BASE_URL = os.getenv("JIRA_BASE_URL", "https://bugzz.atlassian.net").rstrip("/")
+JIRA_BASE_URL = os.getenv("JIRA_BASE_URL", "https://automationrun.atlassian.net").rstrip("/")
 CACHE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "bug_cache")
 
 
@@ -101,6 +123,11 @@ def fetch_jira_ticket(bug_id):
             auth=(os.getenv("JIRA_EMAIL"), os.getenv("JIRA_API_TOKEN")),
             headers={"Accept": "application/json"},
             timeout=30,
+            # Corporate Zscaler proxy terminates TLS with a private CA that
+            # certifi does not trust, so verification is disabled here.
+            # Swap verify=True (or a bundled Zscaler root cert) once the
+            # support team provides one.
+            verify=False,
         )
         r.raise_for_status()
         f = r.json()["fields"]
@@ -131,7 +158,7 @@ def fetch_jira_ticket(bug_id):
         raise RuntimeError(f"Could not fetch {bug_id} and no cache at {cached}") from exc
 
 
-BUG_ID = os.getenv("BUG_ID", "VWO-48")
+BUG_ID = os.getenv("BUG_ID", "IS-6")
 bug_report = fetch_jira_ticket(BUG_ID)
 
 print("=" * 70)
